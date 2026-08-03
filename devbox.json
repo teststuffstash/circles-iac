@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
+  "packages": [
+    "yamllint@latest",
+    "kubeconform@latest",
+    "kubernetes-helm@latest",
+    "kustomize@latest",
+    "gitleaks@latest",
+    "argo@latest"
+  ],
+  "shell": {
+    "init_hook": [],
+    "scripts": {
+      "ci": [
+        "bash scripts/ci.sh"
+      ],
+      "scan-secrets": [
+        "gitleaks detect --source . --no-banner --verbose"
+      ]
+    }
+  }
+}

@@ -1,0 +1,87 @@
+# circles-workbench — the stack-jail's kubectl identity (namespace admin, nothing cluster-scoped).
+# Consumed by the per-stack jail on the operator's machine (claude-jail tools/stack-jail.sh): the
+# HOST mints a 72h token (`kubectl -n circles create token circles-workbench --duration=72h`)
+# with the admin kubeconfig and injects only that derivative — the admin credential never enters
+# the jail (the credential-airlock pattern). Synced here by the agent-fixer ApplicationSet like the
+# rest of agent/ (homelab argocd/platform/agent-fixer.yaml).
+# Scope note (eyes open): namespace `admin` includes Secrets read, so the jail can see this
+# namespace's worker credentials — the branch-only agent git token and the budget-capped
+# OpenRouter key. Accepted blast radius; nothing beyond the namespace.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: circles-workbench
+  namespace: circles
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: circles-workbench-admin
+  namespace: circles
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: admin
+subjects:
+  - kind: ServiceAccount
+    name: circles-workbench
+    namespace: circles
+---
+# The `admin` ClusterRole only aggregates API groups that carry the aggregation label,
+# and Crossplane's provider-terraform CRDs don't — so namespace admin above can NOT see
+# the Workspace CRs driving this namespace's infra (jail feedback 2026-07-13: provisioning
+# success was only inferable from the connection Secret landing). Explicit read-only grant;
+# both API group spellings (tf.upbound.io legacy, tf.m.upbound.io namespaced/v2).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: circles-workbench-tf-read
+  namespace: circles
+rules:
+  - apiGroups: [tf.upbound.io, tf.m.upbound.io]
+    resources: [workspaces, workspaces/status]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: circles-workbench-tf-read
+  namespace: circles
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: circles-workbench-tf-read
+subjects:
+  - kind: ServiceAccount
+    name: circles-workbench
+    namespace: circles
+---
+# Same aggregation gap as the tf-read Role above (homelab FU-080 b): the `admin` ClusterRole
+# doesn't cover openrouter.teststuff.net, so the jail can't observe the per-session budget keys
+# it (or a per-stack coordinator) mints — the mint's success is only inferable from the Secret
+# landing, and it can't clean a stale CR. Read+write so the stack jail can drive the full
+# mint→observe→delete key lifecycle its own loop needs (the fixer-namespace counterpart of the
+# global coordinator's cluster-scoped openrouterkeys grant, homelab agents/coordinator/rbac.yaml).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: circles-workbench-orkeys
+  namespace: circles
+rules:
+  - apiGroups: [openrouter.teststuff.net]
+    resources: [openrouterkeys, openrouterkeys/status]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: circles-workbench-orkeys
+  namespace: circles
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: circles-workbench-orkeys
+subjects:
+  - kind: ServiceAccount
+    name: circles-workbench
+    namespace: circles

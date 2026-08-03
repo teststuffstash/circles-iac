@@ -1,0 +1,36 @@
+# circles infra CRs (ADR-076 app-owned resources) — currently an EMPTY placeholder (README only):
+# the agent plumbing (standing OpenRouter key, git-token trio, egress netpol) is claim-rendered by
+# the AgentStack composition (circles/agent/agentstack.yaml), not hand-carried here. Deliberately
+# scoped to circles/infra/ — circles/agent/ is synced by the homelab agent-fixer ApplicationSet,
+# not by this app-of-apps. The chart Application (OCI + $values, sleep-ingester-shaped) arrives
+# separately with the first published chart.
+# Part of the **circles** app-of-apps; project: circles (tenancy boundary). Depends on platform being
+# up (openrouter-operator, ESO) — ArgoCD retries until the CRDs exist.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: circles
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: circles
+  source:
+    repoURL: https://github.com/teststuffstash/circles-iac.git
+    targetRevision: master
+    path: circles/infra
+    # ⚠ FLAT DIRECTORY ONLY — no subdirectories. `directory.recurse` cannot be set from this
+    # repo: the platform's argocd-cm ignores `.spec.source.directory` on Application objects
+    # (resource.customizations.ignoreDifferences), so the app-of-apps never propagates it
+    # (found 2026-07-16: merged recurse change, Synced root app, live spec unchanged). The
+    # machine-managed per-PR specs routes therefore live flat as infra/specs-pr-<N>.yaml.
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: circles
+  # namespace is platform-precreated (CreateNamespace omitted → false); the circles AppProject
+  # allowlists it as a destination but does not permit the tenant to create namespaces.
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    retry:
+      limit: 10
+      backoff: { duration: 15s, factor: 2, maxDuration: 5m }

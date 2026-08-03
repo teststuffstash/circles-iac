@@ -1,0 +1,14 @@
+# Relaxed yamllint for hand-written k8s manifests: comments carry long context lines, and the
+# manifests use flow-style maps ({ recurse: false }) deliberately. We lint for real errors
+# (syntax, duplicate keys, bad indentation), not cosmetics.
+extends: relaxed
+rules:
+  line-length: disable
+  comments:
+    min-spaces-from-content: 1
+  document-start: disable
+  empty-lines:
+    max: 2
+  truthy:
+    # allow bare on/off/yes only where k8s expects strings; warn elsewhere
+    level: warning

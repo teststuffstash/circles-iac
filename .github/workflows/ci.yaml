@@ -1,0 +1,31 @@
+# circles-iac CI — thin. All logic lives in `devbox run ci` (devbox.json + scripts/ci.sh), so the
+# exact same gate runs locally and here, and tool versions are pinned by devbox, not by this YAML.
+# The job id `ci` is the required status check (tofu/github protected_repos in the homelab repo) —
+# and the SOLE gate: circles-iac has no required-approval (deploy-bump PRs are mechanical).
+#
+# Runs on the homelab self-hosted runner (Actions Runner Controller, ephemeral laptop tier):
+# runs-on: homelab-ephemeral.
+#
+# pull_request ONLY (no push:master): the PR run is the gate that blocks a bad manifest from merging;
+# re-running on master after a squash-merge would validate byte-identical content and gate nothing
+# (ArgoCD would surface a bad manifest as a sync error anyway). See homelab docs/sleep-iac.md.
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+  workflow_dispatch: {}
+
+jobs:
+  ci:
+    runs-on: homelab-ephemeral
+    steps:
+      - uses: actions/checkout@v4
+
+      # No toolchain install: the ARC runner image bakes single-user Nix + devbox + the LAN
+      # nix substituter (homelab docker/arc-runner/, FU-015).
+      - name: Validate (devbox run ci)
+        run: devbox run ci
+
+      - name: Secret scan (devbox run scan-secrets)
+        run: devbox run scan-secrets

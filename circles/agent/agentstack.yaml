@@ -1,0 +1,52 @@
+# The circles stack's AgentStack claim (homelab FU-048/ADR-085) — the stack's agent POLICY in one
+# CR; homelab's XRD+Composition render the fixer MECHANISM (git-token trio, worker egress netpol,
+# the standing OpenRouterKey, proxy session-key RBAC). Applied by the agent-fixer ApplicationSet.
+# Docs:
+#   kubectl get cm -n crossplane-system agentstack-docs -o jsonpath='{.data.USAGE\.md}'
+#   homelab docs/agents/agentstack.md
+#
+# CHAINLESS PILOT (ADR-096 P5, 2026-08-03): this claim deliberately declares NO workerModel /
+# workerModelFallbacks — the router's rotation universe supplies candidates per dispatch, and
+# routerMode: authoritative makes the routed decision binding (the launcher refuses a chainless
+# dispatch in shadow/off). Do not "fix" this by adding a chain; that would regress the pilot to
+# the static-chain shape (the point of circles is router-routed rides from day one).
+apiVersion: platform.teststuff.net/v1alpha1
+kind: AgentStack
+metadata:
+  name: circles
+spec:
+  mainRepo: circles # coordinator cwd — circles/CLAUDE.md + specs/ are the session's context
+  coordinatorModel: sonnet
+  coordinator:
+    # New stack: OFF until the merge-path proof + first supervised rides land (the seeding rule —
+    # one trivial hand-authored PR through CI → review → auto-merge E2E before any loop dispatch).
+    enabled: false
+  reviewer:
+    enabled: true # server default, explicit so the stamped bool doesn't drift ArgoCD OutOfSync
+  loop:
+    perStack: true # FU-080 shape from day one: the loop machinery renders in circles-agents
+    # (the coordinate CronWorkflow stays inert while coordinator.enabled is false)
+    graduated: false # global belt still owns circles; flip ONLY together with coordinator.enabled
+  routerMode: authoritative # REQUIRED for chainless (see header)
+  modelDeny: [] # explicit (server default) — ArgoCD diff hygiene
+  # No slo: block yet — there is no live endpoint to probe (the vanilla chart deploys the hello
+  # page but no LAN hostname is routed). Declare it with the first real exposure so the blackbox
+  # probe + error-budget teeth attach to something that exists.
+  repos:
+    - name: circles-iac # context-only: CI deploys this repo, agents never run pods in it (FU-052 exclusion)
+      labels: { extra: [] } # taxonomy only; explicit extra (server default) — bare {} stamps to {extra: []}, ArgoCD drifts
+    - name: circles
+      labels: { extra: [] } # track/* lanes arrive with specs/TRACKS.md — claim-owned when they do (FU-068)
+      fixer:
+        budgetUSD: 5 # USD/week standing ceiling; per-session ephemeral keys budget underneath it
+        resetInterval: weekly
+        guardrail: only-free # the STANDING key never buys paid completions; session keys carry their own
+        # Chainless + research rides need the subscription rail available: renders the
+        # claude-session ExternalSecret (session-key-labeled) so a routed claude/<alias> dispatch
+        # — and the FU-105/FU-126 researcher rides — can run here (FU-066 leg a).
+        claudeTier: true
+        docker: false # no kind/e2e gate yet — the CI gate is chart validate + unittest; flip with the first docker-needing gate
+        egress:
+          profile: none # static page + helm gate: baseline egress only (no pypi)
+          extraFQDNs: [] # explicit (server default) — earned from a harvest, currently none
+          enforce: false # MONITOR first, like every new fixer ns (FU-020 rollout rings)

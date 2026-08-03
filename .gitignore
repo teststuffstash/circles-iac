@@ -1,0 +1,6 @@
+# devbox / nix
+.devbox/
+
+# editor / OS cruft
+*.swp
+.DS_Store
