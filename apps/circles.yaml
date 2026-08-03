@@ -9,7 +9,11 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: circles
+  # NB name must NOT be plain "circles" — that is the ROOT app-of-apps' own name (homelab
+  # tofu/argocd.tf), and an identically-named child manifest makes the root SYNC OVER ITSELF
+  # (observed live 2026-08-03: the root's spec got replaced by this file's). The collision
+  # exists because this stack's main repo shares the stack name; sleep/oracle children differ.
+  name: circles-infra
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "0"
