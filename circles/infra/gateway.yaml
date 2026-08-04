@@ -1,0 +1,34 @@
+# The circles stack's in-cluster L7 gateway (ADR-092 — per-stack subdomain delegation). Homelab
+# wired `*.circles.teststuff.net` ONCE (wildcard-cert HAProxy frontend on VIP 192.168.3.28
+# forwarding plain HTTP to this gateway's 192.168.40.28 LB VIP — 2026-08-04, the next free
+# mirror pair); from here the STACK owns every hostname under circles.teststuff.net by adding
+# HTTPRoutes in THIS repo — no homelab change.
+#
+# Synced by apps/circles.yaml (the flat circles/infra/ Application) into ns circles; retries
+# until the platform's Gateway API CRDs + `cilium` GatewayClass exist. TLS terminates upstream
+# at OPNsense HAProxy (the wildcard cert), so the listener is plain HTTP :80 — the gateway
+# host-routes on the preserved Host header.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: circles-gateway
+  namespace: circles
+spec:
+  gatewayClassName: cilium
+  # Pin the LB VIP + carry the bgp=advertise label onto the Cilium-generated Service so FRR
+  # advertises 40.28 (the CiliumBGPAdvertisement selects Services by matchLabels bgp=advertise —
+  # homelab tofu/cilium-bgp.tf). 40.10–40.27 were taken; .28 mirrors HAProxy 3.28.
+  addresses:
+    - type: IPAddress
+      value: 192.168.40.28
+  infrastructure:
+    labels:
+      bgp: advertise
+  listeners:
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*.circles.teststuff.net"
+      allowedRoutes:
+        namespaces:
+          from: Same

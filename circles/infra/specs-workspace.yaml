@@ -1,0 +1,70 @@
+# The circles-specs bucket — mkdocs render of circles specs/ + docs/ (circles
+# scripts/specs-publish.sh), served ANONYMOUSLY by the Garage web endpoint and fronted by the
+# circles gateway (httproute-specs.yaml): master → https://specs.circles.teststuff.net, per-PR
+# previews → https://specs-<N>.circles.teststuff.net (bucket prefix pr-<N>/, route lifecycle
+# owned by circles .github/workflows/specs-pr-site.yaml). Same CREATE-pattern as oracle-iac's
+# allure-workspace.yaml (the reference implementation, sleep-iac#22 shape).
+#
+# Sizing (ADR-089: every bucket claim states max_size): the site is a full overwrite each
+# publish + short-lived pr-<N>/ prefixes — 1Gi is generous.
+#
+# Keys: writer (read+write — CI mirrors and needs list) reaches circles CI as GitHub Actions
+# secrets SPECS_S3_ACCESS_KEY_ID / SPECS_S3_SECRET_ACCESS_KEY, set by the operator from the
+# connection Secret below (circles-specs-s3 in ns circles) — never committed. Reader is
+# read-only for humans/badges.
+apiVersion: tf.upbound.io/v1beta1
+kind: Workspace
+metadata:
+  name: circles-specs-garage
+  namespace: circles
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    source: Inline
+    module: |
+      resource "garage_key" "writer" { name = "circles-specs-writer" }
+      resource "garage_key" "reader" { name = "circles-specs-reader" }
+
+      resource "garage_bucket" "specs" {
+        global_alias           = "circles-specs"
+        max_size               = 1073741824 # 1Gi — sizing note above
+        website_enabled        = true
+        website_index_document = "index.html"
+      }
+
+      resource "garage_bucket_permission" "specs_writer_rw" {
+        bucket_id     = garage_bucket.specs.id
+        access_key_id = garage_key.writer.id
+        read  = true
+        write = true
+        owner = false
+      }
+      resource "garage_bucket_permission" "specs_reader_read" {
+        bucket_id     = garage_bucket.specs.id
+        access_key_id = garage_key.reader.id
+        read  = true
+        write = false
+        owner = false
+      }
+
+      output "bucket" {
+        value = garage_bucket.specs.global_alias
+      }
+      output "writer_access_key_id" {
+        value = garage_key.writer.id
+      }
+      output "writer_secret_access_key" {
+        value     = garage_key.writer.secret_access_key
+        sensitive = true
+      }
+      output "reader_access_key_id" {
+        value = garage_key.reader.id
+      }
+      output "reader_secret_access_key" {
+        value     = garage_key.reader.secret_access_key
+        sensitive = true
+      }
+  writeConnectionSecretToRef:
+    namespace: circles
+    name: circles-specs-s3

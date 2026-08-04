@@ -1,0 +1,32 @@
+# specs.circles.teststuff.net → the browsable specs site (ADR-092). The site is a Garage
+# website-enabled bucket (alias `circles-specs`, specs-workspace.yaml in this directory).
+# Garage's web endpoint keys the bucket off the Host header under rootDomain `.teststuff.net`,
+# so the URLRewrite rewrites Host `specs.circles.teststuff.net` → `circles-specs.teststuff.net`
+# before the backend request — the bucket alias stays `circles-specs` (stack-namespaced; a bare
+# `specs` would squat the generic name for every future stack).
+#
+# Cross-namespace backend (garage-s3 in ns garage) is permitted by the platform-owned
+# ReferenceGrant in ns garage (homelab argocd/platform/circles-gateway-refgrant.yaml). This and
+# the machine-managed specs-pr-<N>.yaml previews are the only routes needing that grant; future
+# circles surfaces are in-namespace HTTPRoutes here.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: specs-circles
+  namespace: circles
+spec:
+  parentRefs:
+    - name: circles-gateway
+  hostnames:
+    - specs.circles.teststuff.net
+  rules:
+    - filters:
+        - type: URLRewrite
+          urlRewrite:
+            hostname: circles-specs.teststuff.net
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: garage-s3
+          namespace: garage
+          port: 3902
