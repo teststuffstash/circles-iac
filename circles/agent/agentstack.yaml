@@ -40,7 +40,7 @@ spec:
       fixer:
         budgetUSD: 5 # USD/week standing ceiling; per-session ephemeral keys budget underneath it
         resetInterval: weekly
-        guardrail: only-free # the STANDING key never buys paid completions; session keys carry their own
+        guardrail: none # explicit — the XRD defaults to only-free and would stamp the restriction back if omitted. Opened 2026-08-04 (operator): the FU-126 comparison runs use paid models (no free deepseek variant exists) and only-free 403s them before spend; budgetUSD above stays the standing-key ceiling, session keys still carry their own caps.
         # Chainless + research rides need the subscription rail available: renders the
         # claude-session ExternalSecret (session-key-labeled) so a routed claude/<alias> dispatch
         # — and the FU-105/FU-126 researcher rides — can run here (FU-066 leg a).
