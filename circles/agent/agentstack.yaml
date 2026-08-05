@@ -30,8 +30,13 @@ spec:
     enabled: true # server default, explicit so the stamped bool doesn't drift ArgoCD OutOfSync
   loop:
     perStack: true # FU-080 shape from day one: the loop machinery renders in circles-agents
-    # (the coordinate CronWorkflow stays inert while coordinator.enabled is false)
-    graduated: false # global belt still owns circles; flip ONLY together with coordinator.enabled
+    # graduated flipped WITH coordinator.enabled 2026-08-05, and the line below said to do exactly
+    # that. Flipping enabled alone (10:41) left BOTH scanners owning circles — the global belt in
+    # agent-coordinator and the per-stack coordinate-circles — and they raced issue #17 within four
+    # minutes: three coordinator sessions, two redundant claim comments, one wasted opus session.
+    # No duplicate WORKER: the launcher's WIP-limit pre-flight refused the second spawn, which is
+    # the only reason this cost tokens instead of two concurrent rides on one issue.
+    graduated: true # per-stack loop owns circles now; the global scan skips it (doorbell + in-ns review)
   routerMode: authoritative # REQUIRED for chainless (see header)
   modelDeny: [] # explicit (server default) — ArgoCD diff hygiene
   # No slo: block yet — there is no live endpoint to probe (the vanilla chart deploys the hello
