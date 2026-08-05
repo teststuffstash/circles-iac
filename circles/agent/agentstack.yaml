@@ -18,9 +18,14 @@ spec:
   mainRepo: circles # coordinator cwd — circles/CLAUDE.md + specs/ are the session's context
   coordinatorModel: sonnet
   coordinator:
-    # New stack: OFF until the merge-path proof + first supervised rides land (the seeding rule —
-    # one trivial hand-authored PR through CI → review → auto-merge E2E before any loop dispatch).
-    enabled: false
+    # ON since 2026-08-05 (operator). The seeding rule this was holding for — one trivial
+    # hand-authored PR through CI → review → auto-merge E2E before any loop dispatch — is
+    # deliberately NOT the gate any more: circles' first implementation work lands on the
+    # research/issue-1-weave branch, not master, and those rides are human-gated by construction
+    # (a declared `Base:` makes the launcher refuse to arm auto-merge), so the first supervised
+    # rides ARE the proof. The merge path itself stays unexercised until the weave merges — that
+    # is the residual risk of flipping here, and it is accepted knowingly, not overlooked.
+    enabled: true
   reviewer:
     enabled: true # server default, explicit so the stamped bool doesn't drift ArgoCD OutOfSync
   loop:
