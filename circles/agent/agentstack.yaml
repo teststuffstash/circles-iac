@@ -45,7 +45,7 @@ spec:
         # claude-session ExternalSecret (session-key-labeled) so a routed claude/<alias> dispatch
         # — and the FU-105/FU-126 researcher rides — can run here (FU-066 leg a).
         claudeTier: true
-        docker: false # no kind/e2e gate yet — the CI gate is chart validate + unittest; flip with the first docker-needing gate
+        docker: true # circles#19 builds the kind system-testing gate — the first docker-needing gate, so this flips (kata microVM + dind sidecar; the launcher auto-derives --docker from this claim)
         egress:
           profile: none # static page + helm gate: baseline egress only (no pypi)
           extraFQDNs: [] # explicit (server default) — earned from a harvest, currently none
