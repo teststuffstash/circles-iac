@@ -47,6 +47,15 @@ spec:
       labels: { extra: [] } # taxonomy only; explicit extra (server default) — bare {} stamps to {extra: []}, ArgoCD drifts
     - name: circles
       labels: { extra: [] } # track/* lanes arrive with specs/TRACKS.md — claim-owned when they do (FU-068)
+      # ADR-089 quota-as-contract, ARMED 2026-08-07. The XRD has carried these caps since day one
+      # and NO claim ever set one, so `kubectl get resourcequota -A` was empty cluster-wide and the
+      # "over-cap PVC fails fast at CREATE with a legible error" promise was never actually in
+      # force. Unbounded is what produced 2026-07-25: nine rides held 9x20Gi of scratch at once,
+      # pushed both bulk disks past the scheduling cap, and wedged every later ride in Init.
+      # scratch = 20Gi x 3 concurrent docker rides (the circles#19 kind gate needs a real daemon).
+      storage:
+        standard: "5Gi"
+        scratch: "60Gi"
       fixer:
         budgetUSD: 5 # USD/week standing ceiling; per-session ephemeral keys budget underneath it
         resetInterval: weekly
