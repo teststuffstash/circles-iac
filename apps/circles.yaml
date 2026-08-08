@@ -21,7 +21,7 @@ spec:
   project: circles
   source:
     repoURL: https://github.com/teststuffstash/circles-iac.git
-    targetRevision: master
+    targetRevision: 2026.8.8-g892787768852
     path: circles/infra
     # ⚠ FLAT DIRECTORY ONLY — no subdirectories. `directory.recurse` cannot be set from this
     # repo: the platform's argocd-cm ignores `.spec.source.directory` on Application objects
