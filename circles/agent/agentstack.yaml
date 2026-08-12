@@ -28,6 +28,7 @@ spec:
     enabled: true
   reviewer:
     enabled: true # server default, explicit so the stamped bool doesn't drift ArgoCD OutOfSync
+    goalModel: sonnet   # declared-not-defaulted (M10; same drift class, 2026-08-12)
   loop:
     perStack: true # FU-080 shape from day one: the loop machinery renders in circles-agents
     # graduated flipped WITH coordinator.enabled 2026-08-05, and the line below said to do exactly
@@ -56,6 +57,8 @@ spec:
       storage:
         standard: "5Gi"
         scratch: "60Gi"
+        bulk: "0"
+        fast: "0" # declared-not-defaulted: omitted server-default fields drift the app OutOfSync (homelab agent-fixer.yaml doctrine, 2026-08-12)
       fixer:
         budgetUSD: 5 # USD/week standing ceiling; per-session ephemeral keys budget underneath it
         resetInterval: weekly
