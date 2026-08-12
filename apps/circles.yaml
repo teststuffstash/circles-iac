@@ -21,7 +21,12 @@ spec:
   project: circles
   source:
     repoURL: https://github.com/teststuffstash/circles-iac.git
-    targetRevision: 2026.8.8-g892787768852
+    # master, NOT a build CalVer: this is a GIT-directory source (circles/infra manifests), so
+    # its revision must be a resolvable git ref — a 2026-08-08 bump wrote the circles APP's chart
+    # CalVer here (its -g sha is a circles-repo commit, never a circles-iac ref; the repo has no
+    # tags at all), and ArgoCD sat "Unknown / unable to resolve to a commit SHA" from then on.
+    # Chart pins belong on CHART sources; every sibling stack's infra app rides master.
+    targetRevision: master
     path: circles/infra
     # ⚠ FLAT DIRECTORY ONLY — no subdirectories. `directory.recurse` cannot be set from this
     # repo: the platform's argocd-cm ignores `.spec.source.directory` on Application objects
