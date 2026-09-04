@@ -53,10 +53,13 @@ spec:
       # "over-cap PVC fails fast at CREATE with a legible error" promise was never actually in
       # force. Unbounded is what produced 2026-07-25: nine rides held 9x20Gi of scratch at once,
       # pushed both bulk disks past the scheduling cap, and wedged every later ride in Init.
-      # scratch = 20Gi x 3 concurrent docker rides (the circles#19 kind gate needs a real daemon).
+      # scratch = 20Gi x 5 concurrent docker rides (was x 3 until 2026-09-04 — homelab#1321: a
+      # finished ride keeps its 20Gi for 30–60 min until the scan janitor's grace expires, so
+      # three rides finishing within an hour wedged the fourth dispatch on quota). Physical
+      # headroom checked at the raise: the two bulk disks had 216 + 237 GiB free, replica-1.
       storage:
         standard: "5Gi"
-        scratch: "60Gi"
+        scratch: "100Gi"
         bulk: "0"
         fast: "0" # declared-not-defaulted: omitted server-default fields drift the app OutOfSync (homelab agent-fixer.yaml doctrine, 2026-08-12)
       fixer:
