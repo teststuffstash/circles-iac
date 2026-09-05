@@ -1,0 +1,12 @@
+# values/circles.yaml — the circles-iac overlay for the circles PAGE chart (apps/circles-page.yaml,
+# source 2 `$values`). The chart's own defaults (circles chart/values.yaml, schema
+# values.schema.json) need no override at P0, so this file is intentionally empty.
+#
+# This is where deploy-time config lands later: the real-person data seam (circles
+# specs/process/phases.md CIR-PROC-DEPLOY-SEAM / ⚖-R1 — a private job publishes an artifact the
+# chart mounts; the public image is never rebuilt with real data). Real people's data itself is
+# NEVER committed here either — references only (this repo is public).
+#
+# `image.tag` is never set here: the tag defaults to the chart appVersion, and the ONLY deploy
+# knob is the chart targetRevision in apps/circles-page.yaml (stamped by circles deploy-pin.sh).
+{}

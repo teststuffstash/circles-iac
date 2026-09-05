@@ -1,0 +1,44 @@
+# circles-page — the circles status PAGE (the Helm chart circles publishes as an OCI artifact).
+# Multi-source, sleep-ingester-shaped: the CHART comes from ghcr, the VALUES live in THIS repo
+# (values/circles.yaml). The `circles` AppProject already allowlists `ghcr.io/teststuffstash/charts`
+# as a source (homelab argocd/platform/circles-project.yaml), so no project change is needed.
+#
+# **A deploy = bump the chart `targetRevision` below — the ONLY knob.** circles-iac pins ONLY the
+# chart version: the image tag defaults to the chart appVersion (chart version == appVersion ==
+# image tag, `2026.<m>.<d>-g<sha>`), so the pin is one number. circles' `deploy.yaml` builds the
+# chart+image on a master push and opens the bump PR HERE (scripts/deploy-pin.sh). The infra
+# git-directory app (apps/circles.yaml) is a separate Application whose targetRevision stays
+# `master` — never pin a chart CalVer there.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  # NB not plain "circles" — that is the ROOT app-of-apps' own name (see apps/circles.yaml).
+  name: circles-page
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: circles
+  sources:
+    # 1) the chart from ghcr (OCI). Public package → no repo credential.
+    - repoURL: ghcr.io/teststuffstash/charts
+      chart: circles
+      # stamped by circles scripts/deploy-pin.sh — chart version == appVersion == image tag; never hand-edit
+      targetRevision: 2026.8.8-g892787768852
+      helm:
+        valueFiles:
+          - $values/values/circles.yaml
+    # 2) THIS repo (circles-iac), referenced as $values — supplies the values file above.
+    - repoURL: https://github.com/teststuffstash/circles-iac.git
+      targetRevision: master
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: circles
+  # namespace is platform-precreated (CreateNamespace omitted → false); the circles AppProject
+  # allowlists it as a destination but does not permit the tenant to create namespaces.
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    retry:
+      limit: 10
+      backoff: { duration: 15s, factor: 2, maxDuration: 5m }
