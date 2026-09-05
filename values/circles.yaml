@@ -2,9 +2,10 @@
 # source 2 `$values`). The chart's own defaults (circles chart/values.yaml, schema
 # values.schema.json) need no override at P0, so this file is intentionally empty.
 #
-# This is where deploy-time config lands later: the real-person data seam (circles
-# specs/process/phases.md CIR-PROC-DEPLOY-SEAM / ⚖-R1 — a private job publishes an artifact the
-# chart mounts; the public image is never rebuilt with real data). Real people's data itself is
+# This is where deploy-time config lands: the real-person data seam (circles
+# specs/process/phases.md CIR-PROC-DEPLOY-SEAM / ⚖-R1), ruled in docs/adr.md ADR-001 — a bake
+# CronJob publishes onto a PVC the page pod mounts; the shape of the overlay that turns it on is in
+# docs/deploy-seam.md (`content.mode: volume` waits on ADR-002, exposure). Real people's data itself is
 # NEVER committed here either — references only (this repo is public).
 #
 # `image.tag` is never set here: the tag defaults to the chart appVersion, and the ONLY deploy
