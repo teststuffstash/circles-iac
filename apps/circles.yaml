@@ -2,8 +2,8 @@
 # the agent plumbing (standing OpenRouter key, git-token trio, egress netpol) is claim-rendered by
 # the AgentStack composition (circles/agent/agentstack.yaml), not hand-carried here. Deliberately
 # scoped to circles/infra/ — circles/agent/ is synced by the homelab agent-fixer ApplicationSet,
-# not by this app-of-apps. The chart Application (OCI + $values, sleep-ingester-shaped) arrives
-# separately with the first published chart.
+# not by this app-of-apps. The chart Application (OCI + $values, sleep-ingester-shaped) is
+# apps/circles-page.yaml.
 # Part of the **circles** app-of-apps; project: circles (tenancy boundary). Depends on platform being
 # up (openrouter-operator, ESO) — ArgoCD retries until the CRDs exist.
 apiVersion: argoproj.io/v1alpha1
