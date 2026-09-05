@@ -10,6 +10,8 @@ reference implementation):
 - `gateway.yaml` — the stack's L7 gateway on LB VIP `192.168.40.28` (homelab wired the
   `*.circles.teststuff.net` wildcard → HAProxy `3.28` half on 2026-08-04).
 - `httproute-specs.yaml` — `specs.circles.teststuff.net` → the `circles-specs` Garage bucket.
+- `httproute-page.yaml` — `app.circles.teststuff.net` → the `circles-page` Service (the chart
+  Application `apps/circles-page.yaml`; in-namespace, no ReferenceGrant).
 - `specs-workspace.yaml` — the bucket + writer/reader keys (connection Secret
   `circles-specs-s3`; the writer pair reaches circles CI as GitHub secrets, set by operator).
 - `specs-pr-<N>.yaml` — MACHINE-MANAGED per-PR preview routes
