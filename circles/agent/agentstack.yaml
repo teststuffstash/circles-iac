@@ -40,9 +40,15 @@ spec:
     graduated: true # per-stack loop owns circles now; the global scan skips it (doorbell + in-ns review)
   routerMode: authoritative # REQUIRED for chainless (see header)
   modelDeny: [] # explicit (server default) — ArgoCD diff hygiene
-  # No slo: block yet — there is no live endpoint to probe (the vanilla chart deploys the hello
-  # page but no LAN hostname is routed). Declare it with the first real exposure so the blackbox
-  # probe + error-budget teeth attach to something that exists.
+  # FU-104 availability contract — declared with the first real exposure (apps/circles-page.yaml +
+  # circles/infra/httproute-page.yaml, 2026-09-05). GET / on the LAN hostname IS the deepest path
+  # for a static site (nginx → the baked index.html; nothing behind it). Renders the blackbox Probe
+  # + EndpointProbeFailing/ErrorBudgetBurnt alerts stamped stack:circles, and the teeth: a burnt
+  # budget parks this stack's auto-merge lane. Defaults kept explicit (ArgoCD diff hygiene).
+  slo:
+    endpoint: https://app.circles.teststuff.net/
+    module: http_2xx_lan
+    availability: 0.99
   repos:
     - name: circles-iac # context-only: CI deploys this repo, agents never run pods in it (FU-052 exclusion)
       labels: { extra: [] } # taxonomy only; explicit extra (server default) — bare {} stamps to {extra: []}, ArgoCD drifts
