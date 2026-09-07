@@ -72,6 +72,14 @@ spec:
         claudeTier: true
         docker: true # circles#19 builds the kind system-testing gate — the first docker-needing gate, so this flips (kata microVM + dind sidecar; the launcher auto-derives --docker from this claim)
         egress:
-          profile: none # static page + helm gate: baseline egress only (no pypi)
+          # WAS `none` with the rationale "static page + helm gate: baseline egress only
+          # (no pypi)" — true when this claim was written, stale since circles gained a
+          # Python chassis. `pyproject.toml` + a committed `uv.lock` now exist, and the
+          # ride's Gate A (`devbox run ci`, per .agents/fix.yaml) runs `uv run --frozen`,
+          # which installs from the URLs the lock carries — files.pythonhosted.org. That
+          # reaches the WAN today ONLY because enforce is false below; flipping enforce
+          # without this line would HANG every ride at the first uv call (the FU-020
+          # nix-cache signature: a miss hangs, it does not error).
+          profile: python # pypi.org + files.pythonhosted.org — the Python chassis needs them
           extraFQDNs: [] # explicit (server default) — earned from a harvest, currently none
           enforce: false # MONITOR first, like every new fixer ns (FU-020 rollout rings)
