@@ -65,8 +65,6 @@ spec:
       fixer:
         budgetUSD: 5 # USD/week standing ceiling; per-session ephemeral keys budget underneath it
         resetInterval: weekly
-        rideSize: standard # explicit (server default): a default stamped inside the atomic repos[] list leaves ArgoCD OutOfSync forever (homelab docs/dependency-upgrades.md G4)
-        readOnlyGrants: [] # explicit (server default), same G4 reason
         guardrail: none # explicit — the XRD defaults to only-free and would stamp the restriction back if omitted. Opened 2026-08-04 (operator): the FU-126 comparison runs use paid models (no free deepseek variant exists) and only-free 403s them before spend; budgetUSD above stays the standing-key ceiling, session keys still carry their own caps.
         # Chainless + research rides need the subscription rail available: renders the
         # claude-session ExternalSecret (session-key-labeled) so a routed claude/<alias> dispatch
