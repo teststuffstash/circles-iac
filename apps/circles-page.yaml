@@ -24,7 +24,7 @@ spec:
     - repoURL: ghcr.io/teststuffstash/charts
       chart: circles
       # stamped by circles scripts/deploy-pin.sh — chart version == appVersion == image tag; never hand-edit
-      targetRevision: 2026.10.21-gc36cc50d8ce7
+      targetRevision: 2026.10.28-g9a3705f7d82e
       helm:
         valueFiles:
           - $values/values/circles.yaml
