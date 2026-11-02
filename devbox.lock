@@ -50,8 +50,8 @@
       }
     },
     "github:NixOS/nixpkgs/nixpkgs-unstable": {
-      "last_modified": "2026-10-27T21:33:45Z",
-      "resolved": "github:NixOS/nixpkgs/f05535a0efcb2134c478d1e88434fadf486d42b5?lastModified=1793136825&narHash=sha256-2pkE69JpFRInaARSczZytcfPw83IL82E2KdhbWGwdMs%3D"
+      "last_modified": "2026-11-02T01:28:21Z",
+      "resolved": "github:NixOS/nixpkgs/5c9de89ec55bff981cb8da1a4ee92b10f1438ffc?lastModified=1793582901&narHash=sha256-WDValiY9se78X2Wh7aWWaq%2Fc7HN29U555%2BOKbHEzYrw%3D"
     },
     "gitleaks@latest": {
       "last_modified": "2026-10-24T03:22:33Z",
@@ -178,40 +178,40 @@
       }
     },
     "kustomize@latest": {
-      "last_modified": "2026-10-24T03:22:33Z",
-      "resolved": "github:NixOS/nixpkgs/674a2028661e550a97400c1cc992b9cca9a668a1#kustomize",
+      "last_modified": "2026-11-01T00:57:29Z",
+      "resolved": "github:NixOS/nixpkgs/d357a2b54f0b6dc4aeb4e993190a52cf151b6f24#kustomize",
       "source": "devbox-search",
-      "version": "5.8.2",
+      "version": "5.8.3",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/wvsnyyk6a7f8609fyy77mmjzn4nrz19p-kustomize-5.8.2",
+              "path": "/nix/store/vr20316v7rcy42rxa9hk9q6i4xhjyici-kustomize-5.8.3",
               "default": true
             }
           ],
-          "store_path": "/nix/store/wvsnyyk6a7f8609fyy77mmjzn4nrz19p-kustomize-5.8.2"
+          "store_path": "/nix/store/vr20316v7rcy42rxa9hk9q6i4xhjyici-kustomize-5.8.3"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/k5m6v6i78lp6c1xgx1qczsgs5lplin4h-kustomize-5.8.2",
+              "path": "/nix/store/lz8cbx8689gd0dhwqh6a793xs17nlv09-kustomize-5.8.3",
               "default": true
             }
           ],
-          "store_path": "/nix/store/k5m6v6i78lp6c1xgx1qczsgs5lplin4h-kustomize-5.8.2"
+          "store_path": "/nix/store/lz8cbx8689gd0dhwqh6a793xs17nlv09-kustomize-5.8.3"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/cndcbjr6zw0avf2gyjd9534mh3bk4vki-kustomize-5.8.2",
+              "path": "/nix/store/g1wlcdb62kcar04ianm0hl4yvcx2d8gm-kustomize-5.8.3",
               "default": true
             }
           ],
-          "store_path": "/nix/store/cndcbjr6zw0avf2gyjd9534mh3bk4vki-kustomize-5.8.2"
+          "store_path": "/nix/store/g1wlcdb62kcar04ianm0hl4yvcx2d8gm-kustomize-5.8.3"
         }
       }
     },
