@@ -14,6 +14,9 @@ reference implementation):
   Application `apps/circles-page.yaml`; in-namespace, no ReferenceGrant).
 - `specs-workspace.yaml` — the bucket + writer/reader keys (connection Secret
   `circles-specs-s3`; the writer pair reaches circles CI as GitHub secrets, set by operator).
+- `source-workspace.yaml` — the **real-data input** bucket `circles-source` (ADR-003): the
+  operator's notes repo publishes a whitelisted export into it, the bake CronJob reads it with the
+  reader key (connection Secret `circles-source-s3`). Private, no website, no route.
 - `specs-pr-<N>.yaml` — MACHINE-MANAGED per-PR preview routes
   (`specs-<N>.circles.teststuff.net`), opened/removed by circles
   `.github/workflows/specs-pr-site.yaml` via `scripts/specs-pr-route.sh`. Don't hand-edit.

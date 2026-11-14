@@ -14,7 +14,8 @@ spec explicitly defers "next door": deploy-time mechanism, exposure, credentials
 ---
 
 ### ADR-001 — The deploy seam: an in-cluster bake CronJob publishes a real person's page to a volume the page pod serves
-**Status:** Accepted (2026-09-05). Ratifies circles ⚖-R1 (`specs/process/phases.md`
+**Status:** Accepted (2026-09-05). **Input source superseded by ADR-003** (2026-11-14): the
+CronJob no longer clones the notes repo; everything else below stands. Ratifies circles ⚖-R1 (`specs/process/phases.md`
 §CIR-PROC-DEPLOY-SEAM), which recommends this shape and defers the decision here.
 **Decision:** real content enters at deploy time through **three chart values and two secrets**:
 the circles chart grows a `content.mode: image|volume` seam (a PVC mounted read-only over the
@@ -47,3 +48,24 @@ the **mTLS-enforced** shape `ha.teststuff.net` proved (client certificate in the
 rule blocks without it) — never an open consumer-profile route. **This block must be Accepted
 before `content.mode: volume` is enabled in `values/circles.yaml`**; until then the deployment
 serves the fixture person only.
+
+### ADR-003 — Real content is pushed: the notes repo publishes a whitelisted export; the cluster never reads the repo
+**Status:** Accepted (2026-11-14, operator). Supersedes ADR-001's input source only (the clone).
+**Decision:** the operator's private notes repo (Forgejo) **publishes** what circles needs: its own
+Forgejo Actions workflow copies an explicit file whitelist (the person's `circles.yaml` + exactly
+the notes it references, relative paths preserved) and `rclone sync`s it into the Garage bucket
+`circles-source` (`circles/infra/source-workspace.yaml`). The bake CronJob reads that bucket with
+a read-only key instead of cloning. The notes repo holds the writer key; the cluster holds no
+credential for the notes repo at all. Output side (PVC, atomic writes, page pod) is ADR-001
+unchanged.
+**Considered:** the ADR-001 clone with a read-only Forgejo token — the repo also holds medical
+and other documents unrelated to circles, and a read token exposes all of it to a pod in this
+namespace; a separate small data repo still cloned — splits the operator's notes for a
+transport concern and keeps a cluster-side repo credential; publishing the rendered page from
+the notes repo's CI — puts the bake (and `command:` adapters that need cluster reach) outside
+the released, tested image.
+**Consequences:** the whitelist in the notes repo is the privacy boundary and the bucket is its
+audit point (`rclone ls circles-source:`); the circles chart's bake init container moves from
+git clone to an S3 copy (reader key from Secret `circles-source-s3`); a publish that breaks the
+config fails the bake, which keeps the last good page (ADR-001). `docs/deploy-seam.md` follows.
+

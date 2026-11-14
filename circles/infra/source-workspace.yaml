@@ -1,0 +1,71 @@
+# The circles-source bucket — the INPUT side of the real-data seam (ADR-003): the operator's
+# private notes repo publishes a WHITELISTED export (the person's circles.yaml + only the notes it
+# references) here from its own Forgejo CI; the nightly bake CronJob reads it. The cluster never
+# clones the notes repo — what is in this bucket is everything the stack ever sees.
+# Same CREATE-pattern as specs-workspace.yaml (oracle-iac allure-workspace.yaml reference).
+#
+# NOT website-enabled and NO HTTPRoute: this is private input, never served. The served page is
+# the bake's OUTPUT on the page pod's PVC (ADR-001), behind the LAN tier of ADR-002.
+#
+# Sizing (ADR-089: every bucket claim states max_size): a YAML config + a handful of markdown
+# notes, full-sync each publish — 64Mi is generous; a publish that outgrows it is a whitelist bug.
+#
+# Keys:
+#   writer (read+write+list — `rclone sync` needs list/delete) reaches the notes repo's Forgejo
+#     Actions secrets, copied by the operator from the connection Secret below — never committed.
+#   reader (read-only) is the bake CronJob's ONLY data credential; the chart mounts it from the
+#     connection Secret (circles-source-s3 in ns circles) — same namespace, no ExternalSecret.
+apiVersion: tf.upbound.io/v1beta1
+kind: Workspace
+metadata:
+  name: circles-source-garage
+  namespace: circles
+spec:
+  providerConfigRef:
+    name: default
+  forProvider:
+    source: Inline
+    module: |
+      resource "garage_key" "writer" { name = "circles-source-writer" }
+      resource "garage_key" "reader" { name = "circles-source-reader" }
+
+      resource "garage_bucket" "source" {
+        global_alias = "circles-source"
+        max_size     = 67108864 # 64Mi — sizing note above
+      }
+
+      resource "garage_bucket_permission" "source_writer_rw" {
+        bucket_id     = garage_bucket.source.id
+        access_key_id = garage_key.writer.id
+        read  = true
+        write = true
+        owner = false
+      }
+      resource "garage_bucket_permission" "source_reader_read" {
+        bucket_id     = garage_bucket.source.id
+        access_key_id = garage_key.reader.id
+        read  = true
+        write = false
+        owner = false
+      }
+
+      output "bucket" {
+        value = garage_bucket.source.global_alias
+      }
+      output "writer_access_key_id" {
+        value = garage_key.writer.id
+      }
+      output "writer_secret_access_key" {
+        value     = garage_key.writer.secret_access_key
+        sensitive = true
+      }
+      output "reader_access_key_id" {
+        value = garage_key.reader.id
+      }
+      output "reader_secret_access_key" {
+        value     = garage_key.reader.secret_access_key
+        sensitive = true
+      }
+  writeConnectionSecretToRef:
+    namespace: circles
+    name: circles-source-s3
