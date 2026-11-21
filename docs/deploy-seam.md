@@ -28,7 +28,7 @@ CronJob circles-bake  (ns circles, nightly, podAffinity → page pod's node)
       │  PVC circles-content (longhorn, RWO, 1 Gi) — mounted RW at /content
       ▼
 Deployment circles-page (the chart)  — PVC mounted RO over /usr/share/nginx/html
-      │  Service circles-page:80 → HTTPRoute app.circles.teststuff.net (LAN only, ADR-002)
+      │  Service circles-page:80 → HTTPRoute app.circles.teststuff.net (LAN only + ADR-004 gate, ADR-002)
       ▼
 the page
 ```
@@ -51,7 +51,7 @@ follow a symlink — a chart-owned nginx.conf, not a Dockerfile change).
 | the `circles-source` bucket + writer/reader keys (connection Secret `circles-source-s3`) | **this repo** | `circles/infra/source-workspace.yaml` (ADR-003) |
 | the writer key in the notes repo's Forgejo Actions secrets + the publish workflow and its whitelist | operator | the private notes repo |
 | the private repo itself — publishes ONLY the whitelist (`circles.yaml` + referenced notes, ISO dates, trusted input — `CIR-ADAPT-COMMAND` says the config runs with the bake's identity) | operator | Forgejo, private |
-| exposure beyond the LAN | ADR-002 (Open) | homelab PublicRoute claim, mTLS shape |
+| exposure | ADR-002 (Accepted: LAN + WireGuard, behind the ADR-004 gate; nothing public) | — |
 
 ## Values the overlay will set (the shape, so the chart chunk and this repo agree)
 
