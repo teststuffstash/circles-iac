@@ -52,6 +52,10 @@ spec:
             - --cookie-secure=true
             - --cookie-name=_circles_auth
             - --cookie-expire=168h
+            # Full logout = /oauth2/sign_out?rd=https://id.circles.teststuff.net/logout — clears this
+            # cookie, then Pocket ID's own session (else it signs you straight back in for up to
+            # SESSION_DURATION). rd may only leave app.circles for this domain.
+            - --whitelist-domain=id.circles.teststuff.net
           env:
             - name: OAUTH2_PROXY_CLIENT_SECRET
               valueFrom: { secretKeyRef: { name: circles-auth, key: oidc_client_secret } }

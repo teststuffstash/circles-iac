@@ -2,7 +2,8 @@
 # passkey-login-link.sh — mint a one-time Pocket ID login link for a gate user (ADR-004), so a
 # passkey can be enrolled without any admin clicking: open the printed link ON THE DEVICE that will
 # hold the passkey, then add the passkey on the account page Pocket ID lands on. Valid 1 hour,
-# single use. Re-run it to enroll another device or after losing one.
+# single use. The TTL must stay > 15 min: Pocket ID v2.19 then issues a 12-char code, the length its
+# /lc page demands when email login is off — a default (15 min, 6-char) code greys out its button. Re-run it to enroll another device or after losing one.
 #
 # Reads STATIC_API_KEY from the connection Secret circles-auth (needs `get secret` in ns circles)
 # and calls the API over the LAN hostname. Prints the link to stdout — it is a credential;
@@ -19,7 +20,7 @@ key=$($KUBECTL -n circles get secret circles-auth -o jsonpath='{.data.static_api
 [ -n "$key" ] || { echo "circles-auth has no static_api_key" >&2; exit 1; }
 
 resp=$(curl -fsS -X POST -H "X-API-Key: $key" -H 'Content-Type: application/json' \
-  --data '{}' "$BASE/api/users/$USER_ID/one-time-access-token")
+  --data '{"ttl":3600}' "$BASE/api/users/$USER_ID/one-time-access-token")
 token=$(printf '%s' "$resp" | sed -nE 's/.*"token":"([^"]+)".*/\1/p')
 [ -n "$token" ] || { echo "no token in response: $resp" >&2; exit 1; }
 
