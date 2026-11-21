@@ -15,3 +15,7 @@ Target path of the `circles-auth` ArgoCD Application (`apps/circles-auth.yaml`),
   `app.circles.teststuff.net` to it.
 
 Enroll a passkey: `scripts/passkey-login-link.sh` (one-time link, open it on the device).
+
+Log out (both sessions): `https://app.circles.teststuff.net/oauth2/sign_out?rd=https://id.circles.teststuff.net/logout`
+— oauth2-proxy drops its cookie, then Pocket ID's logout page ends its own session. Signing out at
+`/oauth2/sign_out` alone is not a logout: Pocket ID's 24 h session lets you straight back in.
