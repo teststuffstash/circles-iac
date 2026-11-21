@@ -10,4 +10,11 @@
 #
 # `image.tag` is never set here: the tag defaults to the chart appVersion, and the ONLY deploy
 # knob is the chart targetRevision in apps/circles-page.yaml (stamped by circles deploy-pin.sh).
-{}
+#
+# Rollout (docs/deploy-seam.md step 3): the bake runs FIRST while the page still serves the image's
+# fixture — the CronJob fills the PVC from the circles-source bucket, a dry run visible in its
+# job log — and `content.mode: volume` follows once a bake has landed.
+content:
+  mode: image
+bake:
+  enabled: true
