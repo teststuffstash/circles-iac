@@ -1,0 +1,27 @@
+# The LAN passkey gate (circles-iac ADR-004): Pocket ID, its seed Job, oauth2-proxy, the
+# id.circles.teststuff.net route and the in-cluster secrets (circles/auth/). Its own Application,
+# apart from circles-infra, so a failing seed hook fails only THIS app's sync — the machine-managed
+# specs-pr routes in circles/infra keep reconciling. The page route that sends
+# app.circles.teststuff.net through oauth2-proxy stays in circles-infra (httproute-page.yaml).
+# Part of the **circles** app-of-apps; project: circles.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: circles-auth
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: circles
+  source:
+    repoURL: https://github.com/teststuffstash/circles-iac.git
+    targetRevision: master   # a git-directory source rides master (see apps/circles.yaml)
+    path: circles/auth       # ⚠ flat directory only, same as circles/infra
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: circles
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
+    retry:
+      limit: 10
+      backoff: { duration: 15s, factor: 2, maxDuration: 5m }

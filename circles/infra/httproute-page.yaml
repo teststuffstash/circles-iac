@@ -1,7 +1,7 @@
-# app.circles.teststuff.net → the circles status page (the `circles-page` chart Application,
-# apps/circles-page.yaml; the chart's Service is named after the Helm release). In-namespace
-# backend → no ReferenceGrant; the apex is not covered by the gateway's `*.circles.teststuff.net`
-# listener, hence the `app.` host.
+# app.circles.teststuff.net → oauth2-proxy → the circles status page (ADR-004: the LAN passkey
+# gate; the page itself is the `circles-page` chart Application, apps/circles-page.yaml, and
+# oauth2-proxy.yaml names it as its upstream). In-namespace backend → no ReferenceGrant; the apex
+# is not covered by the gateway's `*.circles.teststuff.net` listener, hence the `app.` host.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -16,5 +16,5 @@ spec:
     - backendRefs:
         - group: ""
           kind: Service
-          name: circles-page
+          name: oauth2-proxy
           port: 80

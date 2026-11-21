@@ -1,0 +1,33 @@
+# id.circles.teststuff.net → Pocket ID, the passkey login of the LAN gate (ADR-004). LAN/VPN-only
+# like every *.circles name (HAProxy wildcard → circles-gateway).
+#
+# Pocket ID's first-run admin signup (`/api/signup/setup` makes ANY caller the admin while the
+# user table is empty) is closed HERE, permanently, not by sync ordering: ordering only holds on
+# the very first sync, while an empty table can come back any time (a lost or restored-empty
+# PVC). The seed creates users through the API, so the gateway never needs to pass that path.
+# In-cluster callers are fenced off by the CiliumNetworkPolicy in pocket-id.yaml.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: id-circles
+  namespace: circles
+spec:
+  parentRefs:
+    - name: circles-gateway
+  hostnames:
+    - id.circles.teststuff.net
+  rules:
+    - matches:
+        - path: { type: PathPrefix, value: /api/signup/setup }
+        - path: { type: PathPrefix, value: /setup }
+        - path: { type: PathPrefix, value: /signup/setup }
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            path: { type: ReplaceFullPath, replaceFullPath: /login }
+            statusCode: 302
+    - backendRefs:
+        - group: ""
+          kind: Service
+          name: pocket-id
+          port: 80
