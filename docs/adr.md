@@ -93,5 +93,7 @@ one factor there, and it reaches into the chart; waiting for the homelab IdP (ho
 the point is to try passkeys now.
 **Consequences:** oauth2-proxy is the seam that outlives the trial: the homelab IdP replaces Pocket
 ID by changing the issuer/endpoint flags. Passkeys are bound to `id.circles.teststuff.net` — a host
-change re-enrolls. Removing the gate = revert this block's files and point `httproute-page.yaml`
-back at `circles-page`.
+change re-enrolls. Removing the gate = delete `apps/circles-auth.yaml` + `circles/auth/` and point
+`httproute-page.yaml` back at `circles-page`. The first-run admin signup is closed at the gateway
+and by a network policy, never by sync order; the seed is its own Application, so its failures
+cannot stall circles-infra.

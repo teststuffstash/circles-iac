@@ -5,7 +5,7 @@
 # single use. Re-run it to enroll another device or after losing one.
 #
 # Reads STATIC_API_KEY from the connection Secret circles-auth (needs `get secret` in ns circles)
-# and calls the admin API over the LAN hostname. Prints the link to stdout — it is a credential;
+# and calls the API over the LAN hostname. Prints the link to stdout — it is a credential;
 # don't paste it anywhere shared.
 #
 #   KUBECTL="devbox run -- kubectl --kubeconfig tofu/kubeconfig" bash scripts/passkey-login-link.sh
@@ -19,7 +19,7 @@ key=$($KUBECTL -n circles get secret circles-auth -o jsonpath='{.data.static_api
 [ -n "$key" ] || { echo "circles-auth has no static_api_key" >&2; exit 1; }
 
 resp=$(curl -fsS -X POST -H "X-API-Key: $key" -H 'Content-Type: application/json' \
-  --data '{}' "$BASE/api/admin/users/$USER_ID/one-time-access-token")
+  --data '{}' "$BASE/api/users/$USER_ID/one-time-access-token")
 token=$(printf '%s' "$resp" | sed -nE 's/.*"token":"([^"]+)".*/\1/p')
 [ -n "$token" ] || { echo "no token in response: $resp" >&2; exit 1; }
 

@@ -1,11 +1,13 @@
 # The Pocket ID seed (ADR-004) — declares the gate's users and its one OIDC client through the
-# admin API (/api/admin/*, X-API-Key = STATIC_API_KEY from circles-auth). An ArgoCD Sync hook, so it re-runs on
-# every sync of circles-infra; every step is an upsert by a FIXED id, so a re-run is a no-op.
+# API (/api/*, X-API-Key = STATIC_API_KEY from circles-auth). An ArgoCD Sync hook, so it re-runs on
+# every sync of circles-auth; every step is an upsert by a FIXED id, so a re-run is a no-op.
 #
-# Ordering closes Pocket ID's first-run hole: `/api/signup/setup` makes ANY caller the admin until
-# the first user exists. The Deployment syncs at wave 0, this hook at wave 1 (ArgoCD waits for
-# wave 0 to be healthy), and httproute-id.yaml at wave 2 — the hostname exists only after a user
-# does.
+# Wave 1: ArgoCD waits for wave 0 (Pocket ID) to be healthy. A failing seed fails the sync of the
+# circles-auth Application only — it lives apart from circles-infra precisely so that the
+# machine-managed specs-pr routes keep syncing whatever happens here.
+#
+# Security does NOT hang on this ordering: Pocket ID's first-run admin signup is blocked at the
+# gateway (httproute-id.yaml) and in-cluster (the CiliumNetworkPolicy in pocket-id.yaml).
 #
 # What the seed does NOT do: mint a login link. A one-time-access link is a credential and would
 # sit in this Job's log; scripts/passkey-login-link.sh mints it on demand instead.
@@ -25,6 +27,8 @@ spec:
   backoffLimit: 6
   activeDeadlineSeconds: 600
   template:
+    metadata:
+      labels: { app.kubernetes.io/name: pocket-id-seed }   # admitted by pocket-id-ingress
     spec:
       restartPolicy: OnFailure
       securityContext:
@@ -38,7 +42,7 @@ spec:
             allowPrivilegeEscalation: false
             capabilities: { drop: [ALL] }
           env:
-            - { name: API, value: "http://pocket-id.circles.svc.cluster.local/api/admin" }
+            - { name: API, value: "http://pocket-id.circles.svc.cluster.local/api" }
             - { name: USER_ID, value: "6f1c2a3e-8b4d-4c7e-9a10-2d5e7f8a9b01" }   # fixed → idempotent
             - { name: CLIENT_ID, value: "circles-oauth2-proxy" }
             - { name: CALLBACK, value: "https://app.circles.teststuff.net/oauth2/callback" }
@@ -59,7 +63,7 @@ spec:
                 case "$code" in 2*) ;; *) echo "$1 $2 -> $code: $(cat /tmp/body)"; exit 1 ;; esac
               }
 
-              until curl -sf -o /dev/null "${API%/api/admin}/healthz"; do sleep 2; done
+              until curl -sf -o /dev/null "${API%/api}/healthz"; do sleep 2; done
 
               # 1) the admin user
               case "$(get "/users/$USER_ID")" in
@@ -77,13 +81,23 @@ spec:
                 *)   echo "client lookup failed: $(cat /tmp/body)"; exit 1 ;;
               esac
 
-              # 3) its secret — ours, from circles-auth. Added only when the client has none:
-              #    Pocket ID returns a secret's value only at creation, so an existing one cannot
-              #    be compared; rotation = delete the old secret, then re-sync.
-              get "/oidc/clients/$CLIENT_ID/secrets" >/dev/null
-              if grep -q '"id"' /tmp/body; then
+              # 3) its secret — ours, from circles-auth. Pocket ID returns a secret's value only at
+              #    creation, but lists each secret's 4-char clear-text prefix: ours is present when
+              #    a listed prefix matches. If not (first run, or a rotation), add ours, then delete
+              #    every other secret — oauth2-proxy only ever holds the circles-auth one.
+              want=$(printf '%.4s' "$CLIENT_SECRET")
+              code=$(get "/oidc/clients/$CLIENT_ID/secrets")
+              [ "$code" = 200 ] || { echo "secret list -> $code: $(cat /tmp/body)"; exit 1; }
+              pairs=$(grep -o '"id":"[^"]*","prefix":"[^"]*"' /tmp/body || true)
+              if printf '%s\n' "$pairs" | grep -q "\"prefix\":\"$want\"\$"; then
                 echo "secret: present"
               else
                 send POST "/oidc/clients/$CLIENT_ID/secrets" '{"secret":"'"$CLIENT_SECRET"'"}'
                 echo "secret: created"
+                printf '%s\n' "$pairs" | while IFS= read -r p; do
+                  [ -n "$p" ] || continue
+                  id=$(printf '%s' "$p" | sed -E 's/^"id":"([^"]*)".*/\1/')
+                  send DELETE "/oidc/clients/$CLIENT_ID/secrets/$id" ''
+                  echo "secret: deleted old $id"
+                done
               fi

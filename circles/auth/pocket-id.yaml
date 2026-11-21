@@ -40,14 +40,13 @@ spec:
         seccompProfile: { type: RuntimeDefault }
       containers:
         - name: pocket-id
-          image: ghcr.io/pocket-id/pocket-id:v2.19.2-distroless
+          image: ghcr.io/pocket-id/pocket-id:v2.19.3-distroless
           ports:
             - { name: http, containerPort: 1411 }
           env:
             - { name: APP_URL, value: "https://id.circles.teststuff.net" }
-            # Back-channel endpoints (token, jwks, userinfo) are advertised on the Service, so
-            # oauth2-proxy never hairpins through HAProxy for them.
-            - { name: INTERNAL_APP_URL, value: "http://pocket-id.circles.svc.cluster.local" }
+            # No INTERNAL_APP_URL: oauth2-proxy skips discovery and names the back-channel
+            # endpoints itself (oauth2-proxy.yaml) — one source for those URLs, not two.
             - { name: TRUST_PROXY, value: "true" }   # HAProxy → Cilium Envoy set X-Forwarded-*
             - { name: ANALYTICS_DISABLED, value: "true" }
             - { name: VERSION_CHECK_DISABLED, value: "true" }
@@ -90,3 +89,30 @@ spec:
   selector: { app.kubernetes.io/name: pocket-id }
   ports:
     - { name: http, port: 80, targetPort: http }
+---
+# Who may reach Pocket ID at all: the gateway (id.circles.teststuff.net — the browser and
+# scripts/passkey-login-link.sh), oauth2-proxy (token + JWKS back-channel), the seed Job, and the
+# kubelet's probes. Everything else in the namespace — the agent fixer's pods included — is
+# denied, so an empty user table (a lost PVC) cannot be claimed in-cluster through
+# /api/signup/setup either; httproute-id.yaml blocks that path at the gateway.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: pocket-id-ingress
+  namespace: circles
+spec:
+  endpointSelector:
+    matchLabels: { app.kubernetes.io/name: pocket-id }
+  enableDefaultDeny:
+    ingress: true
+  ingress:
+    - fromEntities: [ingress, host]   # Cilium Gateway's Envoy; kubelet probes
+      toPorts:
+        - ports: [{ port: "1411", protocol: TCP }]
+    - fromEndpoints:
+        - matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values: [oauth2-proxy, pocket-id-seed]
+      toPorts:
+        - ports: [{ port: "1411", protocol: TCP }]

@@ -19,6 +19,11 @@ spec:
   template:
     metadata:
       labels: { app.kubernetes.io/name: oauth2-proxy }
+      annotations:
+        # The secrets below are read at pod start only, and circles-auth is minted in-cluster
+        # (no checksum to hash). Bump this AFTER circles-auth has changed (rotation, see
+        # auth-secrets-workspace.yaml) to roll the pod onto the new values.
+        circles.teststuff.net/auth-secret-generation: "1"
     spec:
       securityContext:
         runAsNonRoot: true
