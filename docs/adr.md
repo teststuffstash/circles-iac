@@ -69,3 +69,21 @@ audit point (`rclone ls circles-source:`); the circles chart's bake init contain
 git clone to an S3 copy (reader key from Secret `circles-source-s3`); a publish that breaks the
 config fails the bake, which keeps the last good page (ADR-001). `docs/deploy-seam.md` follows.
 
+
+### ADR-004 — A LAN passkey gate in front of the page, ahead of the homelab IdP (trial)
+**Status:** Proposed (2026-11-21). Does not decide ADR-002 (public exposure stays Open); it adds
+authentication to the LAN tier the page already has.
+**Decision:** `app.circles.teststuff.net` routes through **oauth2-proxy** to the page, with
+**Pocket ID** (passkey-only OIDC provider, SQLite on a 1 Gi PVC) at `id.circles.teststuff.net`.
+Everything is declared: secrets come from a Crossplane `random_password` Workspace (connection Secret
+`circles-auth`), Pocket ID's settings from env (`UI_CONFIG_DISABLED`), users and the client from an
+ArgoCD Sync-hook seed calling the admin API with `STATIC_API_KEY`. The one human act is enrolling a
+passkey on the device, from a one-time link (`scripts/passkey-login-link.sh`).
+**Considered:** forward-auth at the gateway — Cilium Gateway API has no first-class `ext_authz`
+(homelab `docs/loki-tenancy.md`); Authelia via the page nginx's `auth_request` — a passkey counts as
+one factor there, and it reaches into the chart; waiting for the homelab IdP (homelab ADR-055) —
+the point is to try passkeys now.
+**Consequences:** oauth2-proxy is the seam that outlives the trial: the homelab IdP replaces Pocket
+ID by changing the issuer/endpoint flags. Passkeys are bound to `id.circles.teststuff.net` — a host
+change re-enrolls. Removing the gate = revert this block's files and point `httproute-page.yaml`
+back at `circles-page`.

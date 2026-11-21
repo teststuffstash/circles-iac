@@ -1,0 +1,79 @@
+# oauth2-proxy — the gate in front of the circles page (ADR-004). Cilium's Gateway API has no
+# first-class ext_authz, so the gate sits IN the request path: httproute-page.yaml → this proxy →
+# the `circles-page` Service. Any user Pocket ID knows may pass (signups are disabled there; the
+# seed is the user list).
+#
+# OIDC discovery is skipped on purpose: the browser-facing authorize URL is the public
+# id.circles.teststuff.net, while token + JWKS go straight to the Pocket ID Service — no pod →
+# HAProxy hairpin, and no issuer mismatch from discovering on the internal URL.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oauth2-proxy
+  namespace: circles
+  labels: { app.kubernetes.io/name: oauth2-proxy }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: oauth2-proxy }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: oauth2-proxy }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: oauth2-proxy
+          image: quay.io/oauth2-proxy/oauth2-proxy:v7.15.6
+          args:
+            - --http-address=0.0.0.0:4180
+            - --upstream=http://circles-page.circles.svc.cluster.local:80
+            - --provider=oidc
+            - --provider-display-name=passkey
+            - --client-id=circles-oauth2-proxy
+            - --redirect-url=https://app.circles.teststuff.net/oauth2/callback
+            - --oidc-issuer-url=https://id.circles.teststuff.net
+            - --skip-oidc-discovery
+            - --login-url=https://id.circles.teststuff.net/authorize
+            - --redeem-url=http://pocket-id.circles.svc.cluster.local/api/oidc/token
+            - --oidc-jwks-url=http://pocket-id.circles.svc.cluster.local/.well-known/jwks.json
+            - --scope=openid email profile
+            - --code-challenge-method=S256
+            - --email-domain=*
+            - --skip-provider-button
+            - --reverse-proxy
+            - --cookie-secure=true
+            - --cookie-name=_circles_auth
+            - --cookie-expire=168h
+          env:
+            - name: OAUTH2_PROXY_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: circles-auth, key: oidc_client_secret } }
+            - name: OAUTH2_PROXY_COOKIE_SECRET
+              valueFrom: { secretKeyRef: { name: circles-auth, key: cookie_secret } }
+          ports:
+            - { name: http, containerPort: 4180 }
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /ping, port: http }
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 10m, memory: 32Mi }
+            limits: { memory: 128Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oauth2-proxy
+  namespace: circles
+spec:
+  selector: { app.kubernetes.io/name: oauth2-proxy }
+  ports:
+    - { name: http, port: 80, targetPort: http }

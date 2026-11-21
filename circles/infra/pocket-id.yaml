@@ -1,0 +1,92 @@
+# Pocket ID — the passkey-only OIDC provider behind the LAN passkey gate (ADR-004). One pod,
+# SQLite on a small Longhorn PVC, configured entirely from env (UI_CONFIG_DISABLED=true locks the
+# admin settings page to these values). Users and the oauth2-proxy client are created by
+# pocket-id-seed.yaml through the API with STATIC_API_KEY — nothing is set up by clicking.
+#
+# Served at https://id.circles.teststuff.net (httproute-id.yaml). That hostname is the passkeys'
+# relying-party id: moving it later means re-enrolling every passkey.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pocket-id-data
+  namespace: circles
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi   # SQLite + uploads (logos/avatars); a handful of users and one client
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pocket-id
+  namespace: circles
+  labels: { app.kubernetes.io/name: pocket-id }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }   # RWO volume + SQLite: never two writers
+  selector:
+    matchLabels: { app.kubernetes.io/name: pocket-id }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: pocket-id }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532   # distroless :nonroot
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: pocket-id
+          image: ghcr.io/pocket-id/pocket-id:v2.19.2-distroless
+          ports:
+            - { name: http, containerPort: 1411 }
+          env:
+            - { name: APP_URL, value: "https://id.circles.teststuff.net" }
+            # Back-channel endpoints (token, jwks, userinfo) are advertised on the Service, so
+            # oauth2-proxy never hairpins through HAProxy for them.
+            - { name: INTERNAL_APP_URL, value: "http://pocket-id.circles.svc.cluster.local" }
+            - { name: TRUST_PROXY, value: "true" }   # HAProxy → Cilium Envoy set X-Forwarded-*
+            - { name: ANALYTICS_DISABLED, value: "true" }
+            - { name: VERSION_CHECK_DISABLED, value: "true" }
+            # --- app settings, env-only (UI_CONFIG_DISABLED) ---
+            - { name: UI_CONFIG_DISABLED, value: "true" }
+            - { name: APP_NAME, value: "circles" }
+            - { name: ALLOW_USER_SIGNUPS, value: "disabled" }   # users come from the seed only
+            - { name: ALLOW_OWN_ACCOUNT_EDIT, value: "false" }
+            - { name: AUTO_CREATE_OIDC_CLIENT_SECRET, value: "false" }   # the seed supplies it
+            - { name: SESSION_DURATION, value: "1440" }   # minutes — Pocket ID's own session
+            - name: ENCRYPTION_KEY
+              valueFrom: { secretKeyRef: { name: circles-auth, key: encryption_key } }
+            - name: STATIC_API_KEY
+              valueFrom: { secretKeyRef: { name: circles-auth, key: static_api_key } }
+          volumeMounts:
+            - { name: data, mountPath: /app/data }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /healthz, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests: { cpu: 20m, memory: 64Mi }
+            limits: { memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+      volumes:
+        - name: data
+          persistentVolumeClaim: { claimName: pocket-id-data }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pocket-id
+  namespace: circles
+spec:
+  selector: { app.kubernetes.io/name: pocket-id }
+  ports:
+    - { name: http, port: 80, targetPort: http }
