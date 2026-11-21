@@ -89,7 +89,7 @@ kubernetes.io/hostname` (RWO volume, one node), the ESO Secret mounted read-only
 3. **this repo** — ADR-001 + ADR-003, `source-workspace.yaml` (bucket; notes repo publishes into it), the overlay above with
    `content.mode: image` and `bake.enabled: true` FIRST (the CronJob bakes onto the PVC while the
    page still serves the fixture — a dry run visible in the job log), then `content.mode: volume`
-   once ADR-002 is accepted.
+   once ADR-002 is accepted. **Done 2026-11-21** (#223 bake on, then volume).
 4. **e2e** — `CIR-PROC-PHASE-P1#p1-new-data-no-redeploy`: edit a note in the private repo, wait
    for the next run (or `kubectl create job --from=cronjob/circles-bake`), the served stamp and
    status move, the image tag does not.
